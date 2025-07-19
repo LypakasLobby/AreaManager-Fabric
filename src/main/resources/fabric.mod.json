@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "areamanager",
+  "version": "${version}",
+  "name": "AreaManager",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/areamanager/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "com.lypaka.areamanager.AreaManager"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
