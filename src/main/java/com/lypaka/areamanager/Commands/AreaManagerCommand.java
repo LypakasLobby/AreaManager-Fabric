@@ -16,8 +16,9 @@ public class AreaManagerCommand {
                 registryAccess,
                 environment) -> {
 
-            new CreateAreaCommand(dispatcher);
-            new CreateRegionCommand(dispatcher);
+            new WandCreateAreaCommand(dispatcher);
+            new WandCreateRegionCommand(dispatcher);
+            new CreateCommand(dispatcher);
             new ReloadCommand(dispatcher);
             new WandCommand(dispatcher);
             new WorldCommand(dispatcher);

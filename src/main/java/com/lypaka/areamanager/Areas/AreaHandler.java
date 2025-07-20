@@ -4,13 +4,18 @@ import com.lypaka.areamanager.API.AreaEvents.AreaEnterCallback;
 import com.lypaka.areamanager.API.AreaEvents.AreaLeaveCallback;
 import com.lypaka.areamanager.API.AreaEvents.AreaPermissionsCallback;
 import com.lypaka.areamanager.API.AreaEvents.AreaSwimCallback;
+import com.lypaka.areamanager.AreaManager;
 import com.lypaka.areamanager.Regions.Region;
 import com.lypaka.areamanager.Regions.RegionHandler;
+import com.lypaka.lypakautils.ConfigurationLoaders.BasicConfigManager;
+import com.lypaka.lypakautils.ConfigurationLoaders.ConfigUtils;
 import com.lypaka.lypakautils.Handlers.FancyTextHandler;
 import com.lypaka.lypakautils.Handlers.PermissionHandler;
 import com.lypaka.lypakautils.Handlers.WorldHandlers;
 import com.lypaka.lypakautils.PlayerLocationData.PlayerDataHandler;
 import com.lypaka.lypakautils.PlayerLocationData.PlayerLocation;
+import com.lypaka.shadow.configurate.objectmapping.ObjectMappingException;
+import com.lypaka.shadow.google.common.reflect.TypeToken;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
@@ -19,12 +24,91 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class AreaHandler {
 
     public static Map<String, Map<Area, List<UUID>>> playersInArea = new HashMap<>();
     private static final Map<UUID, Integer> swimCounter = new HashMap<>();
+
+    public static void createNewArea (ServerPlayerEntity player, String name, Region region, int x1, int y1, int z1, int x2, int y2, int z2) throws ObjectMappingException {
+
+        BasicConfigManager bcm = region.getConfigManager();
+        List<String> areaNames = new ArrayList<>(bcm.getConfigNode(0, "Locations").getList(TypeToken.of(String.class)));
+        String regionName = region.getName();
+        String[] areaFiles = new String[]{"areaSettings.conf"};
+        if (!areaNames.contains(name)) {
+
+            areaNames.add(name);
+            bcm.getConfigNode(0, "Locations").setValue(areaNames);
+            bcm.save();
+            AreaManager.logger.info("Loading area: " + name + " in region: " + regionName);
+            Path areaDir = ConfigUtils.checkDir(Paths.get("./config/areamanager/regions/" + regionName + "/areas/" + name));
+            BasicConfigManager areaBCM = new BasicConfigManager(areaFiles, areaDir, AreaManager.class, AreaManager.MOD_NAME, AreaManager.MOD_ID, AreaManager.logger);
+            areaBCM.init();
+
+            String areaDisplayName = areaBCM.getConfigNode(0, "Area-Display-Name").getString();
+            areaBCM.getConfigNode(0, "Area-Location", "X1").setValue(x1);
+            areaBCM.getConfigNode(0, "Area-Location", "Y1").setValue(y1);
+            areaBCM.getConfigNode(0, "Area-Location", "Z1").setValue(z1);
+            areaBCM.getConfigNode(0, "Area-Location", "X2").setValue(x2);
+            areaBCM.getConfigNode(0, "Area-Location", "Y2").setValue(y2);
+            areaBCM.getConfigNode(0, "Area-Location", "Z2").setValue(z2);
+            areaBCM.getConfigNode(0, "Area-Location", "World-Name").setValue(region.getWorldName());
+            areaBCM.save();
+            String enterTitle = "&eEntering: &a&l%plainName%";
+            String enterSubtitle = "";
+            String leaveTitle = "&eLeaving: &a&l%plainName%";
+            String leaveSubtitle = "";
+            if (areaBCM.getConfigNode(0, "Area-Messages", "Enter", "Title").isVirtual()) {
+
+                areaBCM.getConfigNode(0, "Area-Messages", "Enter").setValue(null);
+                areaBCM.getConfigNode(0, "Area-Messages", "Enter", "Title").setValue(enterTitle);
+                areaBCM.getConfigNode(0, "Area-Messages", "Enter", "Subtitle").setValue(enterSubtitle);
+                areaBCM.getConfigNode(0, "Area-Messages", "Leave").setValue(null);
+                areaBCM.getConfigNode(0, "Area-Messages", "Leave", "Title").setValue(leaveTitle);
+                areaBCM.getConfigNode(0, "Area-Messages", "Leave", "Subtitle").setValue(leaveSubtitle);
+                areaBCM.save();
+
+            } else {
+
+                enterTitle = areaBCM.getConfigNode(0, "Area-Messages", "Enter", "Title").getString();
+                enterSubtitle = areaBCM.getConfigNode(0, "Area-Messages", "Enter", "Subtitle").getString();
+                leaveTitle = areaBCM.getConfigNode(0, "Area-Messages", "Leave", "Title").getString();
+                leaveSubtitle = areaBCM.getConfigNode(0, "Area-Messages", "Leave", "Subtitle").getString();
+
+            }
+            String plainName = areaBCM.getConfigNode(0, "Area-Plain-Name").getString();
+            String areaEnterPermissionMessage = areaBCM.getConfigNode(0, "Permissions", "Enter", "Message").getString();
+            List<String> areaEnterPermissions = areaBCM.getConfigNode(0, "Permissions", "Enter", "Permissions").getList(TypeToken.of(String.class));
+            String areaEnterTeleportLocation = areaBCM.getConfigNode(0, "Permissions", "Enter", "Teleport").getString();
+            String areaLeavePermissionMessage = areaBCM.getConfigNode(0, "Permissions", "Leave", "Message").getString();
+            List<String> areaLeavePermissions = areaBCM.getConfigNode(0, "Permissions", "Leave", "Permissions").getList(TypeToken.of(String.class));
+            String areaLeaveTeleportLocation = areaBCM.getConfigNode(0, "Permissions", "Leave", "Teleport").getString();
+
+            AreaPermissions permissions = new AreaPermissions(areaEnterPermissionMessage, areaEnterPermissions, areaEnterTeleportLocation, areaLeavePermissionMessage, areaLeavePermissions, areaLeaveTeleportLocation);
+
+            boolean killsForSwimming = areaBCM.getConfigNode(0, "Swim-Settings", "Kill-For-Swimming").getBoolean();
+            boolean teleportsForSwimming = areaBCM.getConfigNode(0, "Swim-Settings", "Teleport-For-Swimming").getBoolean();
+            int priority = areaBCM.getConfigNode(0, "Priority").getInt();
+            int radius = areaBCM.getConfigNode(0, "Radius").getInt();
+            int underground = areaBCM.getConfigNode(0, "Underground").getInt();
+
+            Area a = new Area(name, areaDisplayName, x1, y1, z1, x2, y2, z2, region.getWorldName(), enterTitle, enterSubtitle, leaveTitle, leaveSubtitle, plainName, killsForSwimming,
+                    teleportsForSwimming, permissions, priority, radius, underground);
+
+            region.getAreas().add(a);
+            player.sendMessage(FancyTextHandler.getFormattedText("&aSuccessfully created Area: " + name + " in Region: " + regionName));
+
+        } else {
+
+            player.sendMessage(FancyTextHandler.getFormattedText("&cArea already exists!"));
+
+        }
+
+    }
 
     public static void runSwimCode (ServerPlayerEntity player, Area area) {
 

@@ -4,12 +4,12 @@ public class Area {
 
     private final String name;
     private final String displayName;
-    private final int maxX;
-    private final int maxY;
-    private final int maxZ;
-    private final int minX;
-    private final int minY;
-    private final int minZ;
+    private final int x1;
+    private final int y1;
+    private final int z1;
+    private final int x2;
+    private final int y2;
+    private final int z2;
     private final String worldName;
     private final String enterTitle;
     private final String enterSubtitle;
@@ -23,17 +23,17 @@ public class Area {
     private final int radius;
     private final int underground;
 
-    public Area (String name, String displayName, int maxX, int maxY, int maxZ, int minX, int minY, int minZ, String worldName, String enterTitle, String enterSubtitle, String leaveTitle,
+    public Area (String name, String displayName, int x1, int y1, int z1, int x2, int y2, int z2, String worldName, String enterTitle, String enterSubtitle, String leaveTitle,
                  String leaveSubtitle, String plainName, boolean killForSwimming, boolean teleportForSwimming, AreaPermissions permissions, int priority, int radius, int underground) {
 
         this.name = name;
         this.displayName = displayName;
-        this.maxX = maxX;
-        this.maxY = maxY;
-        this.maxZ = maxZ;
-        this.minX = minX;
-        this.minY = minY;
-        this.minZ = minZ;
+        this.x1 = x1;
+        this.y1 = y1;
+        this.z1 = z1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.z2 = z2;
         this.worldName = worldName;
         this.enterTitle = enterTitle;
         this.enterSubtitle = enterSubtitle;
@@ -63,37 +63,37 @@ public class Area {
 
     public int getMaxX() {
 
-        return this.maxX;
+        return Math.max(this.x1, this.x2);
 
     }
 
     public int getMaxY() {
 
-        return this.maxY;
+        return Math.max(this.y1, this.y2);
 
     }
 
     public int getMaxZ() {
 
-        return this.maxZ;
+        return Math.max(this.z1, this.z2);
 
     }
 
     public int getMinX() {
 
-        return this.minX;
+        return Math.min(this.x1, this.x2);
 
     }
 
     public int getMinY() {
 
-        return this.minY;
+        return Math.min(this.y1, this.y2);
 
     }
 
     public int getMinZ() {
 
-        return this.minZ;
+        return Math.min(this.z1, this.z2);
 
     }
 
